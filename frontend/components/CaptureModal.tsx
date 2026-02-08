@@ -8,13 +8,9 @@ import { captureKnowledge } from "@/lib/api";
 type CaptureModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (data: {
-    title: string;
-    content: string;
-    tags?: string[];
-  }) => Promise<void> | void;
+  // onSave is now a simple trigger to tell the parent to re-fetch data from the source of truth
+  onSave: () => Promise<void> | void;
 };
-
 
 export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalProps) {
   const { getToken } = useAuth();
@@ -23,37 +19,43 @@ export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.title || !formData.content) return;
+    
+    // Guard 1: Basic validation
+    if (!formData.title.trim() || !formData.content.trim()) return;
+    
+    // Guard 2: Prevent double-submission if user clicks fast
+    if (loading) return;
 
     setLoading(true);
     try {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
-      // Format tags from comma-separated string to array
-      const tagsArray = formData.tags.split(",").map(t => t.trim()).filter(t => t !== "");
+      // Format tags: string -> unique array
+      const tagsArray = formData.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter((t) => t !== "");
       
+      // Step 1: Send to FastAPI (Backend handles Gemini processing & DB storage)
       await captureKnowledge({
         title: formData.title,
         content: formData.content,
         tags: tagsArray
       }, token);
 
-      // Reset form and close
+      // Step 2: Clear local form state
       setFormData({ title: "", content: "", tags: "" });
-      onSave({
-  title: formData.title,
-  content: formData.content,
-  tags: formData.tags
-    ? formData.tags.split(",").map(t => t.trim())
-    : [],
-});
 
- // Refresh the Dashboard Grid
+      // Step 3: Trigger refresh in Dashboard
+      // This ensures the single source of truth (DB) is used for the UI
+      await onSave();
+
+      // Step 4: Close UI
       onClose();
     } catch (err) {
       console.error("Capture failed:", err);
-      alert("Failed to save to Brain. Check console.");
+      alert("Failed to save to Brain. Check your connection or API logs.");
     } finally {
       setLoading(false);
     }
@@ -63,6 +65,7 @@ export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalPr
     <AnimatePresence>
       {isOpen && (
         <>
+          {/* Backdrop with Blur */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -71,6 +74,7 @@ export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalPr
             className="fixed inset-0 bg-black/40 backdrop-blur-md z-40"
           />
 
+          {/* Slide-over Panel */}
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -85,47 +89,57 @@ export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalPr
                 </div>
                 <h2 className="text-2xl font-black tracking-tight">Capture Insight</h2>
               </div>
-              <button onClick={onClose} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
+              <button 
+                onClick={onClose} 
+                className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
+              >
                 <X size={24} />
               </button>
             </div>
 
             <form className="space-y-8 flex-1" onSubmit={handleSubmit}>
+              {/* Title Input */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Title</label>
                 <input 
                   required
+                  disabled={loading}
                   type="text" 
                   value={formData.title}
                   onChange={(e) => setFormData({...formData, title: e.target.value})}
                   placeholder="The concept of Entropy..."
-                  className="w-full bg-transparent border-b-2 border-zinc-100 dark:border-zinc-800 py-3 text-xl font-medium focus:border-indigo-500 outline-none transition-all"
+                  className="w-full bg-transparent border-b-2 border-zinc-100 dark:border-zinc-800 py-3 text-xl font-medium focus:border-indigo-500 outline-none transition-all disabled:opacity-50"
                 />
               </div>
 
+              {/* Tags Input */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Tags (comma separated)</label>
                 <input 
+                  disabled={loading}
                   type="text" 
                   value={formData.tags}
                   onChange={(e) => setFormData({...formData, tags: e.target.value})}
                   placeholder="physics, thermodynamics, science"
-                  className="w-full bg-transparent border-b-2 border-zinc-100 dark:border-zinc-800 py-2 focus:border-indigo-500 outline-none transition-all"
+                  className="w-full bg-transparent border-b-2 border-zinc-100 dark:border-zinc-800 py-2 focus:border-indigo-500 outline-none transition-all disabled:opacity-50"
                 />
               </div>
 
+              {/* Content Input */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">The Insight</label>
                 <textarea 
                   required
+                  disabled={loading}
                   rows={8}
                   value={formData.content}
                   onChange={(e) => setFormData({...formData, content: e.target.value})}
                   placeholder="Explain your thought in detail..."
-                  className="w-full bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-6 outline-none focus:ring-4 ring-indigo-500/10 transition-all resize-none"
+                  className="w-full bg-zinc-50 dark:bg-zinc-800/50 rounded-2xl p-6 outline-none focus:ring-4 ring-indigo-500/10 transition-all resize-none disabled:opacity-50"
                 />
               </div>
 
+              {/* Submit Button */}
               <button 
                 type="submit"
                 disabled={loading}
