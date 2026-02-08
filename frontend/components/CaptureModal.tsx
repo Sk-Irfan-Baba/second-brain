@@ -5,7 +5,18 @@ import { X, Sparkles, Plus, Loader2 } from "lucide-react";
 import { useAuth } from "@clerk/nextjs";
 import { captureKnowledge } from "@/lib/api";
 
-export default function CaptureModal({ isOpen, onClose, onSave }) {
+type CaptureModalProps = {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (data: {
+    title: string;
+    content: string;
+    tags?: string[];
+  }) => Promise<void> | void;
+};
+
+
+export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalProps) {
   const { getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({ title: "", content: "", tags: "" });
