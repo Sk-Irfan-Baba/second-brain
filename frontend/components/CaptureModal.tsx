@@ -8,8 +8,7 @@ import { captureKnowledge } from "@/lib/api";
 type CaptureModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  // onSave is now a simple trigger to tell the parent to re-fetch data from the source of truth
-  onSave: () => Promise<void> | void;
+  onSave: () => Promise<void> | void; // Signature: No arguments
 };
 
 export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalProps) {
@@ -20,42 +19,36 @@ export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalPr
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Guard 1: Basic validation
-    if (!formData.title.trim() || !formData.content.trim()) return;
-    
-    // Guard 2: Prevent double-submission if user clicks fast
-    if (loading) return;
+    if (!formData.title.trim() || !formData.content.trim() || loading) return;
 
     setLoading(true);
     try {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
 
-      // Format tags: string -> unique array
       const tagsArray = formData.tags
         .split(",")
         .map((t) => t.trim())
         .filter((t) => t !== "");
       
-      // Step 1: Send to FastAPI (Backend handles Gemini processing & DB storage)
+      // Step 1: Backend Call
       await captureKnowledge({
         title: formData.title,
         content: formData.content,
         tags: tagsArray
       }, token);
 
-      // Step 2: Clear local form state
+      // Step 2: Clear State
       setFormData({ title: "", content: "", tags: "" });
 
-      // Step 3: Trigger refresh in Dashboard
-      // This ensures the single source of truth (DB) is used for the UI
+      // Step 3: Trigger the zero-argument refresh in Dashboard
       await onSave();
 
-      // Step 4: Close UI
+      // Step 4: Close
       onClose();
     } catch (err) {
       console.error("Capture failed:", err);
-      alert("Failed to save to Brain. Check your connection or API logs.");
+      alert("Failed to save. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -65,7 +58,6 @@ export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalPr
     <AnimatePresence>
       {isOpen && (
         <>
-          {/* Backdrop with Blur */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -74,7 +66,6 @@ export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalPr
             className="fixed inset-0 bg-black/40 backdrop-blur-md z-40"
           />
 
-          {/* Slide-over Panel */}
           <motion.div
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
@@ -89,16 +80,12 @@ export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalPr
                 </div>
                 <h2 className="text-2xl font-black tracking-tight">Capture Insight</h2>
               </div>
-              <button 
-                onClick={onClose} 
-                className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors"
-              >
+              <button onClick={onClose} className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition-colors">
                 <X size={24} />
               </button>
             </div>
 
             <form className="space-y-8 flex-1" onSubmit={handleSubmit}>
-              {/* Title Input */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Title</label>
                 <input 
@@ -112,7 +99,6 @@ export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalPr
                 />
               </div>
 
-              {/* Tags Input */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">Tags (comma separated)</label>
                 <input 
@@ -125,7 +111,6 @@ export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalPr
                 />
               </div>
 
-              {/* Content Input */}
               <div className="space-y-2">
                 <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">The Insight</label>
                 <textarea 
@@ -139,7 +124,6 @@ export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalPr
                 />
               </div>
 
-              {/* Submit Button */}
               <button 
                 type="submit"
                 disabled={loading}

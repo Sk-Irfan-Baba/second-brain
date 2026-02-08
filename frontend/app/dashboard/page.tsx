@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useAuth } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { Plus, BrainCircuit } from "lucide-react";
@@ -15,28 +15,25 @@ export default function Dashboard() {
   const { isLoaded, userId, getToken } = useAuth();
   const router = useRouter();
 
+  // --- State ---
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
 
-  // --------------------------------------------------
-  // Auth guard
-  // --------------------------------------------------
+  // --- Auth Guard ---
   useEffect(() => {
     if (isLoaded && !userId) {
       router.push("/");
     }
-  }, [isLoaded, userId]);
+  }, [isLoaded, userId, router]);
 
-  // --------------------------------------------------
-  // Fetch all items
-  // --------------------------------------------------
-  const fetchBrainItems = async () => {
+  // --- Fetch Logic (Source of Truth) ---
+  const fetchBrainItems = useCallback(async () => {
+    if (!userId) return;
     try {
       setLoading(true);
       const token = await getToken();
-
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/public/brain/${userId}`,
         {
@@ -44,6 +41,7 @@ export default function Dashboard() {
         }
       );
 
+      if (!res.ok) throw new Error("Failed to fetch");
       const data = await res.json();
       setItems(data);
     } catch (error) {
@@ -51,53 +49,35 @@ export default function Dashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId, getToken]);
 
   useEffect(() => {
-    if (userId) fetchBrainItems();
-  }, [userId]);
-type KnowledgePayload = {
-  title: string;
-  content: string;
-  tags?: string[];
-};
-  // --------------------------------------------------
-  // Save new knowledge
-  // --------------------------------------------------
-  const handleSave = async (data : KnowledgePayload) => {
-    const token = await getToken();
+    fetchBrainItems();
+  }, [fetchBrainItems]);
 
-    await fetch(`${process.env.NEXT_PUBLIC_API_URL}/capture`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        title: data.title,
-        content: data.content,
-        tags: Array.isArray(data.tags) ? data.tags : [],
-      }),
-    });
+  // --- Handlers ---
 
+  /**
+   * Fixed: handleSave now takes zero arguments.
+   * The CaptureModal handles the actual POST request. 
+   * This function simply refreshes the UI from the database.
+   */
+  const handleSave = async () => {
     await fetchBrainItems();
   };
 
-  // --------------------------------------------------
-  // 🔍 SEARCH LOGIC (THIS WAS MISSING)
-  // --------------------------------------------------
+  /**
+   * Semantic Search Logic
+   */
   const handleSearch = async (query: string) => {
     if (!query.trim()) {
-      // empty input → show all notes again
       fetchBrainItems();
       return;
     }
 
     setIsSearching(true);
-
     try {
       const token = await getToken();
-
       const res = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/search`,
         {
@@ -119,12 +99,12 @@ type KnowledgePayload = {
     }
   };
 
-  // --------------------------------------------------
-  // UI
-  // --------------------------------------------------
+  // --- UI Render ---
   return (
     <div className="pt-28 min-h-screen bg-zinc-50 dark:bg-zinc-950 px-6">
       <div className="max-w-7xl mx-auto">
+        
+        {/* Header Section */}
         <header className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-4">
           <div>
             <div className="flex items-center gap-2 text-indigo-600 mb-2">
@@ -140,19 +120,20 @@ type KnowledgePayload = {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsModalOpen(true)}
-            className="group bg-zinc-900 dark:bg-white text-white dark:text-black px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-xl"
+            className="group bg-zinc-900 dark:bg-white text-white dark:text-black px-8 py-4 rounded-2xl font-bold flex items-center gap-2 shadow-xl hover:shadow-indigo-500/20 transition-all"
           >
-            <Plus size={20} />
+            <Plus size={20} className="group-hover:rotate-90 transition-transform duration-300" />
             Capture Insight
           </motion.button>
         </header>
 
-        {/* 🔍 SEARCH BAR NOW WORKS */}
+        {/* Search Bar */}
         <SearchBar
           onSearch={handleSearch}
           isSearching={isSearching}
         />
 
+        {/* Content Section */}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12 animate-pulse">
             {[1, 2, 3].map((i) => (
@@ -173,10 +154,11 @@ type KnowledgePayload = {
         )}
       </div>
 
+      {/* Logic-Wired Modal */}
       <CaptureModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
-        onSave={handleSave}
+        onSave={handleSave} // Signature matches () => Promise<void>
       />
     </div>
   );
