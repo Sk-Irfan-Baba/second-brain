@@ -56,11 +56,15 @@ export default function Dashboard() {
   useEffect(() => {
     if (userId) fetchBrainItems();
   }, [userId]);
-
+type KnowledgePayload = {
+  title: string;
+  content: string;
+  tags?: string[];
+};
   // --------------------------------------------------
   // Save new knowledge
   // --------------------------------------------------
-  const handleSave = async (data) => {
+  const handleSave = async (data : KnowledgePayload) => {
     const token = await getToken();
 
     await fetch(`${process.env.NEXT_PUBLIC_API_URL}/capture`, {
