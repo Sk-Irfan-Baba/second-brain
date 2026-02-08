@@ -32,7 +32,7 @@ def create_app() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"],
+        allow_origins=["http://localhost:3000","https://second-brain-tau-blush.vercel.app"],
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
