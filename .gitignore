@@ -1,0 +1,78 @@
+# ===============================
+# OS / Editor
+# ===============================
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ===============================
+# Environment variables (CRITICAL)
+# ===============================
+.env
+.env.*
+!.env.example
+
+# ===============================
+# Node / Next.js
+# ===============================
+node_modules/
+.next/
+out/
+dist/
+build/
+.vercel/
+.turbo/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ===============================
+# Python / FastAPI
+# ===============================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.log
+*.sqlite3
+*.db
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# ===============================
+# Python tooling
+# ===============================
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+
+# ===============================
+# Jupyter / Notebooks (if any)
+# ===============================
+.ipynb_checkpoints/
+
+# ===============================
+# Supabase
+# ===============================
+.supabase/
+
+# ===============================
+# Build artifacts
+# ===============================
+coverage/
+htmlcov/
+
+# ===============================
+# Misc
+# ===============================
+*.pem
+*.key
