@@ -41,7 +41,15 @@ export default function CaptureModal({ isOpen, onClose, onSave }: CaptureModalPr
 
       // Reset form and close
       setFormData({ title: "", content: "", tags: "" });
-      onSave(); // Refresh the Dashboard Grid
+      onSave({
+  title: formData.title,
+  content: formData.content,
+  tags: formData.tags
+    ? formData.tags.split(",").map(t => t.trim())
+    : [],
+});
+
+ // Refresh the Dashboard Grid
       onClose();
     } catch (err) {
       console.error("Capture failed:", err);
