@@ -27,15 +27,20 @@ supabase: SupabaseClient = create_client(
     SUPABASE_SERVICE_ROLE_KEY,
 )
 
+ALLOWED_ORIGINS = ["http://localhost:3000","https://second-brain-tau-blush.vercel.app"]
 def create_app() -> FastAPI:
     app = FastAPI(title="Second Brain API")
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000","https://second-brain-tau-blush.vercel.app"],
+        allow_origins=ALLOWED_ORIGINS,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
     )
 
     return app
+
+
+def return_allowed_origins():
+    return ALLOWED_ORIGINS

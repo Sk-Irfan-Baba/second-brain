@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
-from core.config import supabase, genai_client, EMBED_MODEL, EMBED_DIM
+from core.config import supabase, genai_client, EMBED_MODEL, EMBED_DIM, return_allowed_origins
 from core.security import get_user_id
 from models.schemas import KnowledgeItem, SearchQuery
 from services.ai_service import process_content_with_ai
@@ -67,4 +67,7 @@ async def public_brain_access(user_id: str):
 
 @router.get("/health")
 def health():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "cors_allowed_origins": return_allowed_origins(),
+    }
