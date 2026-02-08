@@ -1,6 +1,5 @@
 // middleware.ts
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import type { NextRequest } from "next/server";
 
 /* -------------------- Public Routes -------------------- */
 
@@ -12,24 +11,23 @@ const isPublicRoute = createRouteMatcher([
 
 /* -------------------- Middleware -------------------- */
 
-export default clerkMiddleware((auth, req: NextRequest) => {
+export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req)) {
     return;
   }
 
-  // Protect everything else
-  auth().protect();
+  const session = await auth();
+
+  if (!session.userId) {
+    // Redirects to Clerk sign-in automatically
+    return session.redirectToSignIn();
+  }
 });
 
 /* -------------------- Config -------------------- */
 
 export const config = {
   matcher: [
-    /*
-     * Match all routes except:
-     * - _next static files
-     * - favicon
-     */
     "/((?!_next|favicon.ico).*)",
   ],
 };
