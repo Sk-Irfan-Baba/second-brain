@@ -55,12 +55,11 @@ screenshots/
 └─ search.png
 ```
 
-```md
 ![Landing Page](./screenshots/landing.png)
 ![Dashboard](./screenshots/dashboard.png)
 ![Capture Modal](./screenshots/capture.png)
 ![Semantic Search](./screenshots/search.png)
-```
+=
 
 ---
 
